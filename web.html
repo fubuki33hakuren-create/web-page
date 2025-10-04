@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Es Hoy - Animación avanzada</title>
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+  }
+  h1 {
+    position: absolute;
+    width: 100%;
+    top: 20px;
+    font-size: 48px;
+    color: #333;
+    text-align: center;
+    z-index: 10;
+    pointer-events: none;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+  }
+  #message {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 64px;
+    color: #ff3333;
+    z-index: 10;
+    pointer-events: none;
+    text-align: center;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+  }
+  #notice {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 50px;
+    color: #333;
+    z-index: 10;
+    text-align: center;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+  }
+  canvas {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 0;
+  }
+</style>
+</head>
+<body>
+<h1>Es Hoy</h1>
+<div id="message"></div>
+<div id="notice">Haz click en la pantalla</div>
+<canvas id="canvas"></canvas>
+
+<audio id="sound1" src="sonido1.mp3"></audio>
+<audio id="sound2" src="sonido2.mp3"></audio>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const messageDiv = document.getElementById('message');
+const sound1 = document.getElementById('sound1');
+const sound2 = document.getElementById('sound2');
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+// Imagenes rebotando
+const images = [
+    {src: 'imagen1.jpg', x: 50, y: 50, dx: 1, dy: 0.5, img: new Image(), angle: 0},
+    {src: 'imagen2.jpg', x: 200, y: 150, dx: 0.8, dy: 1, img: new Image(), angle: 0},
+    {src: 'imagen3.jpg', x: 350, y: 100, dx: 1, dy: 0.7, img: new Image(), angle: 0}
+];
+
+images.forEach(obj => obj.img.src = obj.src);
+
+let state = 0; // 0 = inicial blanco, 1 = negro/bu, 2 = barras/sigue siendo hoy
+let speedMultiplier = 1;
+let rotateImages = false;
+let invertImages = false;
+
+function drawBackground() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (state === 0) {
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } else if (state === 1) {
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } else if (state === 2) {
+        const numBars = 10;
+        const barWidth = canvas.width / numBars;
+        for (let i = 0; i < numBars; i++) {
+            ctx.fillStyle = (i % 2 === 0) ? "yellow" : "blue";
+            ctx.fillRect(i * barWidth, 0, barWidth, canvas.height);
+        }
+    }
+}
+
+function drawImage(imgObj) {
+    const {img, x, y, angle} = imgObj;
+
+    ctx.save();
+    ctx.translate(x + 50, y + 50); // Centro de la imagen
+    ctx.rotate(angle);
+
+    if (invertImages) {
+        ctx.filter = 'invert(1)';
+    } else {
+        ctx.filter = 'none';
+    }
+
+    ctx.drawImage(img, -50, -50, 100, 100);
+    ctx.restore();
+}
+
+function animate() {
+    drawBackground();
+
+    images.forEach(img => {
+        img.x += img.dx * speedMultiplier;
+        img.y += img.dy * speedMultiplier;
+
+        // Rebotes
+        if(img.x <= 0 || img.x + 100 >= canvas.width) img.dx *= -1;
+        if(img.y <= 0 || img.y + 100 >= canvas.height) img.dy *= -1;
+
+        if (rotateImages) {
+            img.angle += 0.01; // rotación lenta
+        }
+
+        drawImage(img);
+    });
+
+    requestAnimationFrame(animate);
+}
+
+animate();
+
+document.addEventListener('click', () => {
+    if (state === 0 || state === 2) {
+        // Estado bu
+        state = 1;
+        messageDiv.textContent = "bu";
+        speedMultiplier = 0.2; // muy lento
+        rotateImages = true;
+        invertImages = true;
+        sound2.pause();
+        sound2.currentTime = 0;
+        sound1.currentTime = 0;
+        sound1.play();
+    } else if (state === 1) {
+        // Estado sigue siendo hoy
+        state = 2;
+        messageDiv.textContent = "sigue siendo hoy";
+        speedMultiplier = 100; // rápido
+        rotateImages = false;
+        invertImages = false;
+        sound1.pause();
+        sound1.currentTime = 0;
+        sound2.currentTime = 0;
+        sound2.play();
+    }
+    drawBackground();
+});
+
+// Ajuste de canvas al redimensionar
+window.addEventListener('resize', () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    drawBackground();
+});
+</script>
+</body>
+</html>
